@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Scraping Bot</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f0f7ff 0%, #e8f4ff 100%);
+            min-height: 100vh;
+        }
+        
+        .dark-mode {
+            background: linear-gradient(135deg, #1a1c2e 0%, #1e2235 100%);
+            color: #e5e7eb;
+        }
+        
+        .loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .loading.active {
+            display: flex;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #3b82f6;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .message {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: slideIn 0.3s ease forwards;
+            border-radius: 1rem;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            max-width: 85%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .user-message {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 0.25rem;
+        }
+        
+        .bot-message {
+            background: white;
+            color: #1f2937;
+            margin-right: auto;
+            border-bottom-left-radius: 0.25rem;
+        }
+        
+        .dark-mode .bot-message {
+            background: #2d3748;
+            color: #e5e7eb;
+        }
+        
+        .input-group {
+            position: relative;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            padding-left: 2.5rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.75rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        .dark-mode .input-group input {
+            background: #2d3748;
+            border-color: #4a5568;
+            color: #e5e7eb;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .input-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+        }
+        
+        .button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .button-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+        }
+        
+        .button-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+        }
+        
+        .button-secondary {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+        
+        .button-secondary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(5, 150, 105, 0.2);
+        }
+        
+        .content-panel {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .dark-mode .content-panel {
+            background: rgba(45, 55, 72, 0.9);
+        }
+        
+        .chat-messages {
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 transparent;
+        }
+        
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .chat-messages::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 3px;
+        }
+        
+        .dark-mode .chat-messages::-webkit-scrollbar-thumb {
+            background-color: #4a5568;
+        }
+        
+        .message-avatar {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+        
+        .user-message .message-avatar {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .bot-message .message-avatar {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+        }
+        
+        /* Voice Features */
+        .voice-button {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            outline: none;
+            margin-left: 8px;
+        }
+        
+        .voice-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+        }
+        
+        .voice-button.listening {
+            animation: pulse 1.5s infinite;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
+        
+        /* Enhanced UI Elements */
+        .floating-menu {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+        
+        .floating-button {
+            width: 50px;
+            height: 50px;
+            border-radius: 25px;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .floating-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .tooltip {
+            position: relative;
+        }
+        
+        .tooltip::before {
+            content: attr(data-tooltip);
+            position: absolute;
+            right: 60px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 5px 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+        
+        .tooltip:hover::before {
+            opacity: 1;
+            right: 70px;
+        }
+        
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 20px;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+        
+        .theme-toggle:hover {
+            transform: rotate(45deg);
+        }
+        
+        .dark-mode .theme-toggle {
+            background: #2d3748;
+            color: white;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .notification.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
+</head>
+<body class="transition-colors duration-200">
+    <!-- Loading Overlay -->
+    <div class="loading">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-2">Web Scraping Bot</h1>
+            <p class="text-gray-600 dark:text-gray-400">Enter a URL to scrape content or ask questions about scraped data</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Chat Section -->
+            <div class="md:col-span-2">
+                <div class="content-panel p-6">
+                    <div class="flex flex-col h-[600px]">
+                        <!-- Chat Messages -->
+                        <div id="chatMessages" class="chat-messages flex-1 overflow-y-auto mb-4 space-y-4">
+                            <!-- Welcome Message -->
+                            <div class="message bot-message">
+                                <div class="flex items-start gap-3">
+                                    <div class="message-avatar">
+                                        <i class="fas fa-robot"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="message-header mb-1">
+                                            <span class="font-medium">AI Assistant</span>
+                                        </div>
+                                        <div class="message-content">
+                                            Hello! I'm your web scraping assistant. Enter a URL to get started, and I'll help you extract and analyze the content.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Input Area -->
+                        <div class="space-y-4">
+                            <div class="flex gap-4">
+                                <div class="input-group flex-1">
+                                    <i class="input-icon fas fa-link"></i>
+                                    <input type="text" id="urlInput" 
+                                        placeholder="Enter URL to scrape..." 
+                                        class="focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <button id="scrapeButton" class="button button-primary">
+                                    <i class="fas fa-search"></i>
+                                    Scrape
+                                </button>
+                            </div>
+                            
+                            <div class="flex gap-4">
+                                <div class="input-group flex-1">
+                                    <i class="input-icon fas fa-question"></i>
+                                    <input type="text" id="questionInput" 
+                                        placeholder="Ask a question about the content..." 
+                                        class="focus:ring-2 focus:ring-green-500">
+                                </div>
+                                <button class="voice-button" title="Voice Input">
+                                    <i class="fas fa-microphone"></i>
+                                </button>
+                                <button id="sendButton" class="button button-secondary">
+                                    <i class="fas fa-paper-plane"></i>
+                                    Send
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Content Panel -->
+            <div class="content-panel p-6">
+                <h2 class="text-xl font-bold mb-4 text-gray-800 dark:text-white">Content Summary</h2>
+                <div id="contentSummary" class="mb-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <!-- Content summary will be added here -->
+                    <div class="text-gray-500 dark:text-gray-400 text-center">
+                        No content scraped yet
+                    </div>
+                </div>
+                <div id="contentArea" class="space-y-4 overflow-y-auto max-h-[500px]">
+                    <!-- Extracted content will be added here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Menu -->
+    <div class="floating-menu">
+        <div class="floating-button tooltip" data-tooltip="Clear Chat">
+            <i class="fas fa-trash"></i>
+        </div>
+        <div class="floating-button tooltip" data-tooltip="Save Chat">
+            <i class="fas fa-save"></i>
+        </div>
+        <div class="floating-button tooltip" data-tooltip="Settings">
+            <i class="fas fa-cog"></i>
+        </div>
+    </div>
+    
+    <!-- Theme Toggle -->
+    <div class="theme-toggle">
+        <i class="fas fa-moon"></i>
+    </div>
+    
+    <!-- Notification -->
+    <div id="notification" class="notification"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let currentContent = null;
+            
+            function showLoading(show) {
+                document.querySelector('.loading').classList.toggle('active', show);
+            }
+
+            async function scrapeUrl() {
+                const urlInput = document.getElementById('urlInput');
+                const url = urlInput.value.trim();
+                
+                if (!url) {
+                    addMessage('Please enter a URL to scrape.', false);
+                    return;
+                }
+                
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    addMessage('Please enter a valid URL starting with http:// or https://.', false);
+                    return;
+                }
+                
+                showLoading(true);
+                addMessage(`Scraping URL: ${url}`, true);
+                
+                try {
+                    console.log('Sending request to scrape URL:', url);
+                    const response = await fetch('/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ message: url })
+                    });
+                    
+                    console.log('Received response:', response);
+                    const data = await response.json();
+                    console.log('Parsed response data:', data);
+                    
+                    if (response.ok) {
+                        currentContent = data.response;
+                        console.log('Current content:', currentContent);
+                        updateContentSection(currentContent);
+                        addMessage('Content scraped successfully! You can now ask questions about it or view the extracted content.', false);
+                    } else {
+                        const errorMessage = data.error || 'Failed to scrape webpage';
+                        console.error('Error:', errorMessage);
+                        addMessage(`Error: ${errorMessage}`, false);
+                    }
+                } catch (error) {
+                    console.error('Error during scraping:', error);
+                    addMessage(`Error: ${error.message}`, false);
+                } finally {
+                    showLoading(false);
+                }
+            }
+
+            async function askQuestion() {
+                const questionInput = document.getElementById('questionInput');
+                const question = questionInput.value.trim();
+                
+                if (!question) {
+                    addMessage('Please enter a question.', false);
+                    return;
+                }
+                
+                if (!currentContent) {
+                    addMessage('Please scrape a webpage first before asking questions.', false);
+                    return;
+                }
+                
+                showLoading(true);
+                addMessage(question, true);
+                questionInput.value = '';
+                
+                try {
+                    console.log('Sending question:', question);
+                    const response = await fetch('/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ message: question })
+                    });
+                    
+                    console.log('Received response:', response);
+                    const data = await response.json();
+                    console.log('Parsed response data:', data);
+                    
+                    if (response.ok) {
+                        addMessage(data.response, false);
+                    } else {
+                        const errorMessage = data.error || 'Failed to get answer';
+                        console.error('Error:', errorMessage);
+                        addMessage(`Error: ${errorMessage}`, false);
+                    }
+                } catch (error) {
+                    console.error('Error during chat:', error);
+                    addMessage(`Error: ${error.message}`, false);
+                } finally {
+                    showLoading(false);
+                }
+            }
+
+            function addMessage(message, isUser = false) {
+                const chatMessages = document.getElementById('chatMessages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+                
+                const timestamp = new Date().toLocaleTimeString();
+                
+                messageDiv.innerHTML = `
+                    <div class="flex items-start gap-3">
+                        <div class="message-avatar">
+                            <i class="fas ${isUser ? 'fa-user' : 'fa-robot'}"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="message-header mb-1">
+                                <span class="font-medium">${isUser ? 'You' : 'AI Assistant'}</span>
+                                <span class="text-xs opacity-75 ml-2">${timestamp}</span>
+                            </div>
+                            <div class="message-content">${message}</div>
+                        </div>
+                    </div>
+                `;
+                
+                chatMessages.appendChild(messageDiv);
+                messageDiv.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            function updateContentSection(content) {
+                if (!content) {
+                    console.warn('No content to update');
+                    return;
+                }
+                
+                console.log('Updating content section with:', content);
+                const contentArea = document.getElementById('contentArea');
+                const contentSummary = document.getElementById('contentSummary');
+                
+                if (!contentArea || !contentSummary) {
+                    console.error('Content areas not found');
+                    return;
+                }
+                
+                // Update content summary
+                const stats = [
+                    content.title ? 'Title' : null,
+                    content.meta_description ? 'Description' : null,
+                    content.headings ? `${Object.values(content.headings).flat().length} headings` : null,
+                    content.paragraphs ? `${content.paragraphs.length} paragraphs` : null,
+                    content.links ? `${content.links.length} links` : null
+                ].filter(Boolean);
+                
+                contentSummary.innerHTML = `
+                    <div class="text-sm">
+                        ${content.title ? `<div class="font-medium text-gray-800 dark:text-gray-200 mb-2">${content.title}</div>` : ''}
+                        <div class="text-gray-600 dark:text-gray-400">${stats.join(' • ')}</div>
+                    </div>
+                `;
+                
+                // Update main content area
+                let html = '';
+                
+                // Title
+                if (content.title) {
+                    html += `
+                        <div class="mb-6">
+                            <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">${content.title}</h2>
+                        </div>
+                    `;
+                }
+                
+                // Meta Description
+                if (content.meta_description) {
+                    html += `
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Description</h3>
+                            <p class="text-gray-600 dark:text-gray-400">${content.meta_description}</p>
+                        </div>
+                    `;
+                }
+                
+                // Headings
+                if (content.headings && Object.keys(content.headings).length > 0) {
+                    html += `
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Headings</h3>
+                            <div class="space-y-2">
+                    `;
+                    
+                    Object.entries(content.headings).forEach(([level, headings]) => {
+                        headings.forEach(heading => {
+                            html += `
+                                <div class="text-gray-600 dark:text-gray-400" style="margin-left: ${(parseInt(level) - 1) * 20}px">
+                                    ${heading}
+                                </div>
+                            `;
+                        });
+                    });
+                    
+                    html += `</div></div>`;
+                }
+                
+                // Paragraphs
+                if (content.paragraphs && content.paragraphs.length > 0) {
+                    html += `
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Main Content</h3>
+                            <div class="space-y-4">
+                    `;
+                    
+                    content.paragraphs.forEach(paragraph => {
+                        html += `<p class="text-gray-600 dark:text-gray-400">${paragraph}</p>`;
+                    });
+                    
+                    html += `</div></div>`;
+                }
+                
+                // Links
+                if (content.links && content.links.length > 0) {
+                    html += `
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Links</h3>
+                            <div class="space-y-2">
+                    `;
+                    
+                    content.links.forEach(link => {
+                        html += `
+                            <div class="text-gray-600 dark:text-gray-400">
+                                <a href="${link.url}" target="_blank" class="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300">
+                                    ${link.text}
+                                </a>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `</div></div>`;
+                }
+                
+                contentArea.innerHTML = html;
+            }
+
+            // Event Listeners
+            document.getElementById('urlInput').addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    scrapeUrl();
+                }
+            });
+
+            document.getElementById('questionInput').addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    askQuestion();
+                }
+            });
+
+            document.getElementById('scrapeButton').addEventListener('click', scrapeUrl);
+            document.getElementById('sendButton').addEventListener('click', askQuestion);
+            
+            // Voice Recognition
+            let recognition = null;
+            let isListening = false;
+            
+            function initializeVoiceRecognition() {
+                try {
+                    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                        console.error('Speech recognition not supported');
+                        showNotification('Speech recognition is not supported in your browser');
+                        return;
+                    }
+                    
+                    // Use the standard SpeechRecognition if available, otherwise use webkitSpeechRecognition
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    recognition = new SpeechRecognition();
+                    
+                    recognition.continuous = false;
+                    recognition.interimResults = true;
+                    recognition.lang = 'en-US';
+                    
+                    recognition.onstart = function() {
+                        console.log('Speech recognition started');
+                        isListening = true;
+                        const voiceButton = document.querySelector('.voice-button');
+                        if (voiceButton) {
+                            voiceButton.classList.add('listening');
+                        }
+                        showNotification('Listening...');
+                    };
+                    
+                    recognition.onend = function() {
+                        console.log('Speech recognition ended');
+                        isListening = false;
+                        const voiceButton = document.querySelector('.voice-button');
+                        if (voiceButton) {
+                            voiceButton.classList.remove('listening');
+                        }
+                        hideNotification();
+                    };
+                    
+                    recognition.onresult = function(event) {
+                        console.log('Speech recognition result:', event);
+                        let finalTranscript = '';
+                        
+                        for (let i = event.resultIndex; i < event.results.length; i++) {
+                            const transcript = event.results[i][0].transcript;
+                            if (event.results[i].isFinal) {
+                                finalTranscript += transcript;
+                            }
+                        }
+                        
+                        if (finalTranscript) {
+                            console.log('Final transcript:', finalTranscript);
+                            const questionInput = document.getElementById('questionInput');
+                            if (questionInput) {
+                                questionInput.value = finalTranscript;
+                                // Only ask the question if we have a final transcript
+                                askQuestion();
+                            }
+                        }
+                    };
+                    
+                    recognition.onerror = function(event) {
+                        console.error('Speech recognition error:', event.error);
+                        isListening = false;
+                        const voiceButton = document.querySelector('.voice-button');
+                        if (voiceButton) {
+                            voiceButton.classList.remove('listening');
+                        }
+                        showNotification('Error: ' + event.error);
+                    };
+                    
+                    console.log('Speech recognition initialized successfully');
+                } catch (error) {
+                    console.error('Error initializing speech recognition:', error);
+                    showNotification('Error initializing speech recognition');
+                }
+            }
+            
+            function toggleVoiceInput() {
+                console.log('Toggle voice input called');
+                try {
+                    if (!recognition) {
+                        console.log('Initializing voice recognition');
+                        initializeVoiceRecognition();
+                    }
+                    
+                    if (!recognition) {
+                        console.error('Speech recognition not available');
+                        showNotification('Speech recognition is not supported in your browser');
+                        return;
+                    }
+                    
+                    if (isListening) {
+                        console.log('Stopping voice recognition');
+                        recognition.stop();
+                    } else {
+                        console.log('Starting voice recognition');
+                        recognition.start();
+                    }
+                } catch (error) {
+                    console.error('Error in toggleVoiceInput:', error);
+                    showNotification('Error toggling voice input');
+                }
+            }
+            
+            // Theme Toggle
+            function toggleTheme() {
+                document.body.classList.toggle('dark-mode');
+                const icon = document.querySelector('.theme-toggle i');
+                if (document.body.classList.contains('dark-mode')) {
+                    icon.classList.remove('fa-moon');
+                    icon.classList.add('fa-sun');
+                } else {
+                    icon.classList.remove('fa-sun');
+                    icon.classList.add('fa-moon');
+                }
+            }
+            
+            // Notification System
+            function showNotification(message, duration = 3000) {
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.classList.add('show');
+                
+                setTimeout(() => {
+                    hideNotification();
+                }, duration);
+            }
+            
+            function hideNotification() {
+                const notification = document.getElementById('notification');
+                notification.classList.remove('show');
+            }
+            
+            // Chat Management
+            function clearChat() {
+                const chatMessages = document.getElementById('chatMessages');
+                const initialMessage = chatMessages.firstElementChild;
+                chatMessages.innerHTML = '';
+                if (initialMessage) {
+                    chatMessages.appendChild(initialMessage);
+                }
+                showNotification('Chat cleared');
+            }
+            
+            function saveChat() {
+                const chatMessages = document.getElementById('chatMessages');
+                const messages = Array.from(chatMessages.children).map(msg => {
+                    const content = msg.querySelector('.message-content').textContent;
+                    const sender = msg.classList.contains('user-message') ? 'User' : 'AI';
+                    return `${sender}: ${content}`;
+                }).join('\n\n');
+                
+                const blob = new Blob([messages], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'chat-history.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showNotification('Chat history saved');
+            }
+            
+            // Initialize voice recognition
+            initializeVoiceRecognition();
+
+            // Add click event listeners for buttons
+            const themeToggleBtn = document.querySelector('.theme-toggle');
+            if (themeToggleBtn) {
+                themeToggleBtn.addEventListener('click', toggleTheme);
+            }
+
+            const clearChatBtn = document.querySelector('[data-tooltip="Clear Chat"]');
+            if (clearChatBtn) {
+                clearChatBtn.addEventListener('click', clearChat);
+            }
+
+            const saveChatBtn = document.querySelector('[data-tooltip="Save Chat"]');
+            if (saveChatBtn) {
+                saveChatBtn.addEventListener('click', saveChat);
+            }
+
+            const settingsBtn = document.querySelector('[data-tooltip="Settings"]');
+            if (settingsBtn) {
+                settingsBtn.addEventListener('click', showSettings);
+            }
+
+            // Remove the inline onclick attributes
+            document.querySelectorAll('.floating-button, .theme-toggle').forEach(button => {
+                button.removeAttribute('onclick');
+            });
+
+            // Settings Modal
+            function showSettings() {
+                // You can implement settings functionality here
+                showNotification('Settings feature coming soon!');
+            }
+
+            // Save the initial state of the chat
+            const initialChatState = document.getElementById('chatMessages').innerHTML;
+
+            // Clear Chat
+            function clearChat() {
+                const chatMessages = document.getElementById('chatMessages');
+                chatMessages.innerHTML = initialChatState; // Restore the initial welcome message
+                showNotification('Chat cleared successfully');
+            }
+
+            // Save Chat
+            function saveChat() {
+                const chatMessages = document.getElementById('chatMessages');
+                const messages = Array.from(chatMessages.getElementsByClassName('message')).map(msg => {
+                    const content = msg.querySelector('.message-content').textContent;
+                    const isUser = msg.classList.contains('user-message');
+                    return `${isUser ? 'You' : 'Bot'}: ${content}`;
+                }).join('\n\n');
+
+                const blob = new Blob([messages], { type: 'text/plain' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'chat-history.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                showNotification('Chat saved successfully');
+            }
+
+            // Theme Toggle
+            function toggleTheme() {
+                document.body.classList.toggle('dark-mode');
+                const icon = document.querySelector('.theme-toggle i');
+                if (icon) {
+                    if (document.body.classList.contains('dark-mode')) {
+                        icon.classList.remove('fa-moon');
+                        icon.classList.add('fa-sun');
+                    } else {
+                        icon.classList.remove('fa-sun');
+                        icon.classList.add('fa-moon');
+                    }
+                }
+                showNotification(document.body.classList.contains('dark-mode') ? 'Dark mode enabled' : 'Light mode enabled');
+            }
+
+            // Voice Recognition
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                const recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+
+                recognition.onstart = () => {
+                    const voiceButton = document.querySelector('.voice-button');
+                    if (voiceButton) {
+                        voiceButton.classList.add('listening');
+                    }
+                    showNotification('Listening...');
+                };
+
+                recognition.onend = () => {
+                    const voiceButton = document.querySelector('.voice-button');
+                    if (voiceButton) {
+                        voiceButton.classList.remove('listening');
+                    }
+                    hideNotification();
+                };
+
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    const questionInput = document.getElementById('questionInput');
+                    if (questionInput) {
+                        questionInput.value = transcript;
+                        askQuestion();
+                    }
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                    showNotification('Error: ' + event.error);
+                    const voiceButton = document.querySelector('.voice-button');
+                    if (voiceButton) {
+                        voiceButton.classList.remove('listening');
+                    }
+                };
+
+                // Voice Button Click Handler
+                const voiceButton = document.querySelector('.voice-button');
+                if (voiceButton) {
+                    voiceButton.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        if (voiceButton.classList.contains('listening')) {
+                            recognition.stop();
+                        } else {
+                            recognition.start();
+                        }
+                    });
+                }
+            } else {
+                const voiceButton = document.querySelector('.voice-button');
+                if (voiceButton) {
+                    voiceButton.style.display = 'none';
+                }
+                console.warn('Speech recognition not supported in this browser');
+            }
+
+            // Keyboard Shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey || e.metaKey) {
+                    switch (e.key.toLowerCase()) {
+                        case '/':
+                            e.preventDefault();
+                            toggleTheme();
+                            break;
+                        case 's':
+                            e.preventDefault();
+                            saveChat();
+                            break;
+                        case 'l':
+                            e.preventDefault();
+                            clearChat();
+                            break;
+                        case ',':
+                            e.preventDefault();
+                            showSettings();
+                            break;
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
