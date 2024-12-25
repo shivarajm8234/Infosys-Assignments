@@ -257,3 +257,11 @@ For support, please:
 - Contact the development team
 - Check the documentation
 - Join our community forum
+-
+- ![Screenshot from 2024-12-26 00-41-37](https://github.com/user-attachments/assets/333e428d-f363-48fb-bbe4-cbce06a50456)
+
+- ![Screenshot from 2024-12-26 00-41-46](https://github.com/user-attachments/assets/af348bbe-c293-4aac-a71b-0c518acb53f9)
+
+
+
+  
