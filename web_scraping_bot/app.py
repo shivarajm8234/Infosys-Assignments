@@ -106,5 +106,5 @@ async def export_data():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    os.environ['GROQ_API_KEY'] = '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'
+    os.environ['GROQ_API_KEY'] = 'you api key'
     app.run(debug=True, port=5006)
