@@ -155,6 +155,10 @@ brotlipy==0.7.0
 
 2. **Technical Improvements**
    - Caching mechanism
+
+https://github.com/user-attachments/assets/4ac3661e-7548-498d-b1eb-ba99d03bc674
+
+
    - Rate limiting
    - Advanced error recovery
    - Session management
